@@ -15,6 +15,7 @@ class Peer:
         self.serverip = arg[2]
         self.serverport = 8001
         self.localserport = 9000
+        self.localip = gethostbyname(gethostname())
         self.localadd = (gethostbyname(gethostname()), self.localserport)
         self.mypeer = []
         self.myfile = []
@@ -45,10 +46,11 @@ class Peer:
                 return False
             else:
                 peerinfo = datain.split(' ')
-                socket.close()
+                socket1.close()
                 
-                if self.peerconnect(peerinfo):
-                    print ('We have a new peer' + peerinfo)
+                if self.peerconnect((peerinfo[0], int(peerinfo[1]))):
+                    print ('We have a new peer:')
+                    print (peerinfo)
                     return True
                 else:
                     print ('connect to peer failed')
@@ -57,126 +59,138 @@ class Peer:
                 
     def peerconnect(self, peerinfo):
         #according to returned peerinfo by server, build peer pair with neighbor
-        socket = socket(AF_INET, SOCK_STREAM)
+        socket2 = socket(AF_INET, SOCK_STREAM)
         try:
-            socket.connect(peerinfo)
+            socket2.connect(peerinfo)
         except error:
             print ('connect to peer failed')
             return False
         
-        dataout = 'peer'+' '+self.localserport #tell neighbor my server port
-        socket.send(dataout.encode())
-        print ('connecting to peer '+peerinfo)
+        dataout = 'peer'+' '+str(self.localserport) #tell neighbor my server port
+        socket2.send(dataout.encode())
+        print ('connecting to peer: ')
+        print (peerinfo)
         
         while True:
-            datain = socket.recv(self.buffsize)
+            datain = socket2.recv(self.buffsize)
             if datain.decode() == "successful":
-                socket.close()
-                print ('connect to peer ' + peerinfo + 'successfully' )
+                socket2.close()
+                print ('connect to peer successfully:' )
+                self.mypeer.append(peerinfo)
+                print (peerinfo)
                 return True
             else:
+                socket2.close()
                 return False
     
     def incomimgpeer(self, data, address, socket):
         #handle peer's join request, data like 'peer'+' '+peer's localserport
-        print (address[0] + 'is going to peer, its local service port is '+ data[1])
-        self.mypeer.append((address[0], data[1]))
+        print (address[0] + ' is going to peer, its local service port is '+ data[1])
+        self.mypeer.append((address[0], int(data[1])))
         socket.send(('successful').encode())
-        print (address[0] + 'peer successfully')
+        print (address[0] + ' peer successfully')
     
         
     def get(self, filename):
         #get a file from peer
-        dataout = 'get' + ' ' + filename + ' ' + self.localadd
+        dataout = 'get' + ' ' + filename + ' ' + self.localip +' ' + str(self.localserport)
         print (dataout)
         for peer in self.mypeer:
-            socket = socket(AF_INET, SOCK_STREAM)
-            socket.connect(peer)
-            socket.send(dataout.encode())
-            print ('send request to '+ peer + ' for ' + filename)
-            socket.close()
+            socket3 = socket(AF_INET, SOCK_STREAM)
+            socket3.connect(peer)
+            socket3.send(dataout.encode())
+            print ('send request for ' + filename)
+            print (peer)
+            socket3.close()
         print ('Send all peers for ' + filename)
         
     def incomingget(self, data, address):
         #handle get request from peer,  data like 'get filename self.localadd'
         if data[1] in os.listdir(self.path):
-            print ('has the file' + data[1])
-            self.share(data[1], data[2])
+            print ('has the file ' + data[1])
+            self.share(data[1], (data[2], int(data[3])))
         else:
-            flood = self.mypeer.remove((address[0], 9000)) #remove the sender
+            flood = self.mypeer.remove((address[0], )) #remove the sender
             for peer in flood:
-                socket = socket(AF_INET, SOCK_STREAM)
+                socket4 = socket(AF_INET, SOCK_STREAM)
                 socket.connect(peer)
-                socket.send(data.encode())  #keep the request source ip+port unmodified
-                print ("do not have the file, flood to "+ peer)
-                socket.close
+                socket4.send(data.encode())  #keep the request source ip+port unmodified
+                print ('do not have the file, flood to: ')
+                print (peer)
+                socket4.close
                 
     def share(self, filename, address):
-        #transfer a local file to peer with the address, like 'share filename peeraddress
+        #transfer a local file to peer with the address, like 'share filename peeraddress peerport
         dataout = 'share' + ' ' + filename
-        socket = socket(AF_INET, SOCK_STREAM)
-        socket.connect(address)
-        socket.send(dataout.encode())   
+        socket5 = socket(AF_INET, SOCK_STREAM)
+        socket5.connect(address)
+        socket5.send(dataout.encode())   
         print ('share request sent out')
 
-        datain = socket.recv(self.buffsize)
+        datain = socket5.recv(self.buffsize)
         if datain.decode() == "ok":
             path = self.path + '/' + filename
-            filestream = open(path, 'r')
+            filestream = open(path, 'rb')
             while True:
                 datafile = filestream.read(self.buffsize)
                 if not datafile:
                     break
-                socket.send(datafile.encode())
+                socket5.send(datafile)
             filestream.close()
-            print ("file "+ filename + " is shared to "+ address)
+            print ("file "+ filename + " is shared to: ")
+            print (address)
         else:
             print ("the peer do not accept")
             
-        socket.close()    
+        socket5.close()    
         
     def incomingshare(self, data, address, socket):
         #handle the share request from peer
         #data like 'share filename peeraddress, address is origin add
         path = self.path + '/' + data[1]
-        filestream = open(path, 'w')
+        filestream = open(path, 'wb')
         
-        socket.send('ok')
+        socket.send('ok'.encode())
         while True:
             datain = socket.recv(self.buffsize)
             if not datain:
                 break
-            filestream.write(datain.decode())
+            filestream.write(datain)
         filestream.close()
         socket.close()
+        print ("get a new file "+ data[1] +" from:")
+        print (address)
             
     def listfile(self):
         print(os.listdir(self.path))
         
     def listpeer(self):
         for peer in self.mypeer:
-            print (peer + '\n')
+            print (peer)
         
     def quit(self):
         #quit the p2p network, the command is 'quit
         dataout = "quit"
-        flood = self.mypeer.append((self.serverip, self.serverport))
-        alllist = flood
+        flood = self.mypeer[:]
+        flood.append((self.serverip, self.serverport))
+        alllist = flood[:]
         for peer in flood:
-            socket = socket(AF_INET, SOCK_STREAM)
-            socket.connect(peer)
-            socket.send(dataout.encode())
+            socket6 = socket(AF_INET, SOCK_STREAM)
+            socket6.connect(peer)
+            socket6.send(dataout.encode())
             while True:
-                datain = socket.recv(self.buffsize)
+                datain = socket6.recv(self.buffsize)
                 if (datain.decode() == "quit successfully"):
                     alllist.remove(peer)
                     self.mypeer.remove(peer)
-                    print ("disconnected from " + peer + "successfully")
+                    print ("disconnected successfully from")
+                    print (peer)
                     break
                 else:
-                    print ("disconnected from " + peer + "failed")
+                    print ("disconnected failed from")
+                    print (peer)
                     break
-            socket.close()
+            socket6.close()
         if (alllist == []):
             print ("quit successfully")
         else:
@@ -214,13 +228,13 @@ class Peer:
         
     def remoterequest(self):
         #handle peer's request like: get, share, quit, peer
-        socket = socket(AF_INET, SOCK_STREAM)
-        socket.bind(self.localadd)
-        socket.listen(10)
+        socket1 = socket(AF_INET, SOCK_STREAM)
+        socket1.bind(self.localadd)
+        socket1.listen(10)
         
         while True:
-            peer_socket, peer_add = socket.accept()
-            print (peer_add + 'connected')
+            peer_socket, peer_add = socket1.accept()
+            print (list(peer_add)[0]+' '+str(list(peer_add)[1])+' is connected')
             while True:
                 datain = peer_socket.recv(self.buffsize)
                 datain = datain.decode().split(' ')
@@ -243,7 +257,7 @@ class Peer:
                     break
             peer_socket.close()
             
-        socket.close()
+        socket1.close()
         
         
 if __name__ == '__main__':

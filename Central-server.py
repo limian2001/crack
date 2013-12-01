@@ -7,6 +7,33 @@ import _socket
 from socket import *
 import random
 
+
+    
+def quit(ip, port, peerlist, socket):
+    address = (ip, port)
+    peerlist.remove(address)
+    socket.send(("quit successfully").encode)
+    print (address, ' quit the list')
+    
+def register(ip, port, peerlist):
+    address = (ip, port)
+    if len(peerlist) == 0:
+        peerlist.append(address)
+        return "You are the only one peer in system"
+    else:
+        if address not in peerlist:
+            t = random.randint(0, len(peerlist)-1)
+            randompickapeer = peerlist[t]
+            peerlist.append(address)
+            randompickapeer = str(randompickapeer[0])+' '+ str(randompickapeer[1])
+            return randompickapeer
+        else:
+            t = random.randint(0, len(peerlist)-1)
+            randompickapeer = peerlist[t]
+            randompickapeer = str(randompickapeer[0])+' '+ str(randompickapeer[1])
+            return randompickapeer
+           # return "duplicate register is not allowed"
+        
 if __name__ == '__main__':
     ipadd = gethostbyname(gethostname())
     serverport = 8001
@@ -41,30 +68,7 @@ if __name__ == '__main__':
                 break
         connect_socket.close()
     
-    socket.close()
-    
-def quit(ip, port, peerlist, socket):
-    address = (ip, port)
-    peerlist.remove(address)
-    socket.send(("quit successfully").encode)
-    print (address, ' quit the list')
-    
-def register(ip, port, peerlist):
-    address = (ip, port)
-    if len(peerlist == 0):
-        peerlist.append(address)
-        return "You are the only one peer in system"
-    else:
-        if address not in peerlist:
-            t = random.randint(0, len(peerlist)-1)
-            randompickapeer = peerlist[t]
-            peerlist.append(address)
-            randompickapeer = str(randompickapeer[0])+' '+ str(randompickapeer[1])
-            return randompickapeer
-        else:
-            return "duplicate register is not allowed"
-        
-    
+    socket.close()   
                  
                 
                 
