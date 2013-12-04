@@ -3,7 +3,7 @@ Created on 2013-11-29
 
 @author: Mian
 '''
-import _thread, sys, os
+import _thread, sys, os, time
 from socket import *
 import random
 
@@ -93,7 +93,7 @@ class Peer:
         
     def get(self, filename):
         #get a file from peer
-        dataout = 'get' + ' ' + filename + ' ' + self.localip +' ' + str(self.localserport)
+        dataout = 'get' + ' ' + filename + ' ' + str(self.localserport)
         print (dataout)
         for peer in self.mypeer:
             socket3 = socket(AF_INET, SOCK_STREAM)
@@ -103,22 +103,49 @@ class Peer:
             print (peer)
             socket3.close()
         print ('Send all peers for ' + filename)
+        time.sleep(5)
+        if filename not in os.listdir(self.path):
+            print ("Sorry, get file time out")
         
     def incomingget(self, data, address):
         #handle get request from peer,  data like 'get filename self.localadd'
-        if data[1] in os.listdir(self.path):
-            print ('has the file ' + data[1])
-            self.share(data[1], (data[2], int(data[3])))
-        else:
-            flood = self.mypeer.remove((address[0], )) #remove the sender
-            for peer in flood:
-                socket4 = socket(AF_INET, SOCK_STREAM)
-                socket.connect(peer)
-                socket4.send(data.encode())  #keep the request source ip+port unmodified
-                print ('do not have the file, flood to: ')
-                print (peer)
-                socket4.close
-                
+        #When length=3, this is the peer of origin, add two arguments if has not the file and flood
+        print ("The length of argument is " + str(len(data)))
+        if len(data) == 3:
+            if data[1] in os.listdir(self.path):
+                print ('has the file ' + data[1])
+                self.share(data[1], (address[0], int(data[2])))
+            else:
+                flood = self.mypeer[:]
+                flood.remove((address[0], int(data[2])))  #remove the sender
+                newdata = data[0] + ' ' + data[1] + ' ' +  address[0] + ' ' + data[2] +' ' + str(self.localserport) #reconstruct the command: get filename origin_ip origin_port lasthop_port
+                print (newdata)
+                print ("I am the second peer but I have no file, transfer to other peers")
+                for peer in flood:
+                    socket4 = socket(AF_INET, SOCK_STREAM)
+                    socket4.connect(peer)
+                    socket4.send(newdata.encode())  #keep the request source ip+port unmodified
+                    print ('do not have the file, flood to: ')
+                    print (peer)
+                    socket4.close()
+        #When length=5, this is the third or more far to origin, direct transfer file to origin if has file
+        elif len(data) == 5:
+            print ("I am the third or further peer, now I will check file")
+            if data[1] in os.listdir(self.path):
+                print ('has the file ' + data[1])
+                self.share(data[1], (data[2], int(data[3])))
+            else:
+                flood = self.mypeer[:]
+                flood.remove((address[0], int(data[4]) )) #remove the sender
+                for peer in flood:
+                    socket4 = socket(AF_INET, SOCK_STREAM)
+                    socket4.connect(peer)
+                    socket4.send(data.encode())  #keep the request source ip+port unmodified
+                    print ('do not have the file, flood to: ')
+                    print (peer)
+                    socket4.close()
+        
+        
     def share(self, filename, address):
         #transfer a local file to peer with the address, like 'share filename peeraddress peerport
         dataout = 'share' + ' ' + filename
@@ -170,7 +197,7 @@ class Peer:
         
     def quit(self):
         #quit the p2p network, the command is 'quit
-        dataout = "quit"
+        dataout = "quit" + " " + str(self.localserport)
         flood = self.mypeer[:]
         flood.append((self.serverip, self.serverport))
         alllist = flood[:]
@@ -182,7 +209,8 @@ class Peer:
                 datain = socket6.recv(self.buffsize)
                 if (datain.decode() == "quit successfully"):
                     alllist.remove(peer)
-                    self.mypeer.remove(peer)
+                    if peer != (self.serverip, self.serverport):
+                        self.mypeer.remove(peer)
                     print ("disconnected successfully from")
                     print (peer)
                     break
@@ -194,11 +222,12 @@ class Peer:
         if (alllist == []):
             print ("quit successfully")
         else:
-            print ("quit not completely in\n" + alllist)
+            print ("quit not completely in: ")
+            print (alllist)
     
-    def incomingquit(self, address, socket):    
+    def incomingquit(self, address, socket, data):    
         #handle a peer quit 
-        self.mypeer.remove(address[1], 9000)
+        self.mypeer.remove((address[0], int(data[1])))
         socket.send(("quit successfully").encode())
         
     def localrequest(self):
@@ -229,7 +258,7 @@ class Peer:
     def remoterequest(self):
         #handle peer's request like: get, share, quit, peer
         socket1 = socket(AF_INET, SOCK_STREAM)
-        socket1.bind(self.localadd)
+        socket1.bind(('', self.localserport))
         socket1.listen(10)
         
         while True:
@@ -250,7 +279,7 @@ class Peer:
                     self.incomingshare(datain, peer_add, peer_socket)
                     break
                 elif datain[0] == 'quit':
-                    self.incomingquit(peer_add, peer_socket)
+                    self.incomingquit(peer_add, peer_socket, datain)
                     break
                 else:
                     print (datain)

@@ -12,7 +12,7 @@ import random
 def quit(ip, port, peerlist, socket):
     address = (ip, port)
     peerlist.remove(address)
-    socket.send(("quit successfully").encode)
+    socket.send(("quit successfully").encode())
     print (address, ' quit the list')
     
 def register(ip, port, peerlist):
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     address = (ipadd, serverport)
     print (address)
     clientport = 9000
-    socket.bind(address)
+    socket.bind(('', serverport))
     socket.listen(10)
     
     peerlist = []
@@ -63,9 +63,11 @@ if __name__ == '__main__':
                 print('updated peer list is \n',peerlist)
                 break
             elif data[0] == 'quit':
-                self.quit(client_add[0], clientport, peerlist, connect_socket)
+                quit(client_add[0], data[1], peerlist, connect_socket)
                 print('updated peer list is \n',peerlist)
                 break
+            elif data[0] == 'getip':
+                connect_socket.send(client_add[0].encode())
         connect_socket.close()
     
     socket.close()   
