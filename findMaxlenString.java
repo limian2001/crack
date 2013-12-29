@@ -3,9 +3,12 @@ import java.util.HashMap;
 public class findMaxlenString {
 	
 	public static String getMaxString(String s){
-		HashMap<Character, Integer> map = new HashMap<Character, Integer>(); 
 		String maxstr = "";
+		if(s. == "")
+		    return maxstr;
+		HashMap<Character, Integer> map = new HashMap<Character, Integer>(); 
 		map.put(s.charAt(0), 0);
+		
 		int i=0,j=1;
 		while(i<s.length() && j<s.length()){
 			while(true){
@@ -59,7 +62,7 @@ public class findMaxlenString {
 	}
 	
 	public static void main(String args[]){
-		String t = "abcdefgbhijk";
+		String t = "";
 	    System.out.println(getMaxString(t));
 	}
 
