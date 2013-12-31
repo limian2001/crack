@@ -12,10 +12,11 @@ public class LongestPalindromicSubstring {
         if(s.length() == 1)
             return s;
         if(s.length() > 1){
-        	
+        	/*如果前两位就相同，先记录一次长度为2的回文*/
         	if(s.charAt(0) == s.charAt(1))
         		max=s.substring(0,2);
-        	
+        	/*然后遍历整个字符串，当出现前后两个字母一样的情况AA，或者跳一个字符一样如ABA；这两种情况出现的时候，调用check
+        	 * 函数，检查子回文串的长度，如果比当前记录的max串长，就覆盖当前max*/
         	for(int i=2;i<s.length();i++){
         			if(s.charAt(i-1) == s.charAt(i)){
         				String t1=check(s,i,0);
@@ -32,7 +33,7 @@ public class LongestPalindromicSubstring {
         	}
         return max;
     	}
-    
+    /*写一个check函数，用来检查子回文串长度*/
     public static String check(String s,int i,int b){
         
         int j=i-1-b;
