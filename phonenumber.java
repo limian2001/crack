@@ -28,17 +28,19 @@ public class phonenumber {
     	String[] num={"","","abc","def","ghi","jkl","mno","pqrs","tuv","wxyz"};
     	
     	
-    	if(start == digits.length())
-    		return;
+    //	if(start == digits.length())
+    	//	return;
     	
         int n=digits.charAt(start)-'0';
         
         for(int i=0;i<num[n].length();i++){
             tmp+=num[n].charAt(i);
-            dfs(digits,start+1,result,tmp);
+            
             /*这里不完美，输出的结果里面包含一位和两位的，最后通过if语句来控制，*/
             if(tmp.length() == digits.length())  
             	result.add(tmp);
+            else
+            	dfs(digits,start+1,result,tmp);
             tmp=tmp.substring(0,tmp.length()-1);
         }
     }

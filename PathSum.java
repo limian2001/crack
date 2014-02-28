@@ -13,33 +13,42 @@ return true, as there exist a root-to-leaf path 5->4->11->2 which sum is 22.
 */
 
 public class PathSum {
-	 public static boolean hasPathSum(TreeNode root, int sum) {
-	        int addup = 0;
-	        if(root == null)
-	            return false;
-	            
-	        return pathsum(root,sum,addup);
-	    }
+	public static boolean hasPathSum(TreeNode root, int sum) {
+        int addup = 0;
+        if(root == null)
+            return false;
+            
+        return pathsum(root,sum,addup);
+    }
+    
+    public static boolean pathsum(TreeNode root,int sum,int addup){
+addup += root.val;
+        
+        if(root.left == null && root.right == null){
+            if(addup == sum)
+                return true;
+            else
+                return false;
+        }
+        else if(root.left == null)
+            return pathsum(root.right,sum,addup);
+        else if(root.right == null)
+            return pathsum(root.left,sum,addup);
+        else{
+            return pathsum(root.right,sum,addup) || pathsum(root.left,sum,addup);
+        }
+        
+        }
+    
+        
 	    
-	    public static boolean pathsum(TreeNode root,int sum,int addup){
-	        
-	        if(root == null){
-	            if(addup == sum)
-	                return true;
-	        }
-	        else{
-	        addup+= root.val;
-	        
-	        return (pathsum(root.left,sum,addup) || pathsum(root.right,sum,addup));
-	        }
-	    
-	        return false;
-	    }
 	    
 	    public static void main(String args[]){
 	    	
 	    	TreeNode node = new TreeNode(1);
-	    	System.out.println(hasPathSum(node,1));
+	    	TreeNode node1 = new TreeNode(2);
+	    	node.left = node1;
+	    	System.out.println(hasPathSum(node,3));
 	    }
 	
 
